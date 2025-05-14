@@ -58,6 +58,11 @@
             background: white;
         }
         
+        .filter-select[type="date"] {
+            padding: 9px 15px;
+            height: 40px;
+        }
+        
         .new-report-btn {
             background-color: #3498db;
             color: white;
@@ -168,6 +173,8 @@
                     <option value="new">New</option>
                     <option value="reviewed">Reviewed</option>
                 </select>
+                <input type="date" class="filter-select" id="dateFrom" placeholder="From date">
+                <input type="date" class="filter-select" id="dateTo" placeholder="To date">
             </div>
             
             <a href="index.html" class="new-report-btn">+ New Report</a>
@@ -177,7 +184,8 @@
             <thead>
                 <tr>
                     <th>Report ID</th>
-                    <th>Date</th>
+                    <th>Incident Date</th>
+                    <th>Submission Date/Time</th>
                     <th>Type</th>
                     <th>Location</th>
                     <th>Reporter</th>
@@ -238,12 +246,15 @@
                 const reportId = doc.id;
                 const formattedDate = report.reportDate ? 
                     new Date(report.reportDate).toLocaleDateString() : 'N/A';
+                const submissionDate = report.createdAt ? 
+                    new Date(report.createdAt.seconds * 1000).toLocaleString() : 'N/A';
                 const formattedType = accidentTypes[report.accidentType] || report.accidentType;
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${reportId.substring(0, 8)}</td>
                     <td>${formattedDate}</td>
+                    <td>${submissionDate}</td>
                     <td>${formattedType}</td>
                     <td>${report.location || 'N/A'}</td>
                     <td>${report.reporterName || 'Anonymous'}</td>
@@ -265,16 +276,39 @@
             });
             
             // Add filter functionality
-            document.querySelectorAll('.filter-select').forEach(select => {
+            document.querySelectorAll('.filter-select, #dateFrom, #dateTo').forEach(select => {
                 select.addEventListener('change', function() {
                     const typeFilter = document.querySelector('.filter-select:nth-of-type(1)').value;
                     const statusFilter = document.querySelector('.filter-select:nth-of-type(2)').value;
+                    const dateFrom = document.getElementById('dateFrom').value;
+                    const dateTo = document.getElementById('dateTo').value;
                     const rows = document.querySelectorAll('#reportsList tr');
                     
                     rows.forEach(row => {
-                        const typeMatch = !typeFilter || row.cells[2].textContent === accidentTypes[typeFilter] || typeFilter === '';
-                        const statusMatch = !statusFilter || row.cells[5].textContent.toLowerCase().includes(statusFilter) || statusFilter === '';
-                        row.style.display = typeMatch && statusMatch ? '' : 'none';
+                        const typeMatch = !typeFilter || row.cells[3].textContent === accidentTypes[typeFilter] || typeFilter === '';
+                        const statusMatch = !statusFilter || row.cells[6].textContent.toLowerCase().includes(statusFilter) || statusFilter === '';
+                        
+                        // Date range filtering
+                        let dateMatch = true;
+                        if (dateFrom || dateTo) {
+                            const submissionDateText = row.cells[2].textContent;
+                            if (submissionDateText !== 'N/A') {
+                                const submissionDate = new Date(submissionDateText);
+                                const fromDate = dateFrom ? new Date(dateFrom) : null;
+                                const toDate = dateTo ? new Date(dateTo) : null;
+                                
+                                if (fromDate && submissionDate < fromDate.setHours(0, 0, 0, 0)) {
+                                    dateMatch = false;
+                                }
+                                if (toDate && submissionDate > toDate.setHours(23, 59, 59, 999)) {
+                                    dateMatch = false;
+                                }
+                            } else {
+                                dateMatch = false; // Exclude entries with no date if filtering by date
+                            }
+                        }
+                        
+                        row.style.display = typeMatch && statusMatch && dateMatch ? '' : 'none';
                     });
                 });
             });
