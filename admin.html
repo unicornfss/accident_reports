@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accident Reports - Admin</title>
+    <style>
+        /* Same styles as before */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="index.html">Submit New Report</a>
+        </div>
+        
+        <h1>Accident Reports</h1>
+        
+        <table id="reportsTable">
+            <thead>
+                <tr>
+                    <th>Report ID</th>
+                    <th>Date</th>
+                    <th>Reporter</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script>
+        // Same Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDcjqTdo23GdBhAbfyq6Mchlbs0ad5TO7U",
+            authDomain: "accident-report-9b7ee.firebaseapp.com",
+            projectId: "accident-report-9b7ee",
+            storageBucket: "accident-report-9b7ee.appspot.com",
+            messagingSenderId: "644874177194",
+            appId: "1:644874177194:web:647c19e7993b2194165ed3"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Load all reports
+        db.collection('reports').orderBy('createdAt', 'desc').get().then((querySnapshot) => {
+            const tbody = document.querySelector('#reportsTable tbody');
+            querySnapshot.forEach((doc) => {
+                const report = doc.data();
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${doc.id.substring(0, 8)}...</td>
+                    <td>${report.reportDate}</td>
+                    <td>${report.reporterName}</td>
+                    <td><a href="report.html?id=${doc.id}">View</a></td>
+                `;
+                tbody.appendChild(row);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accident Report</title>
+    <style>
+        /* Same styles as before */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="index.html">Submit New Report</a>
+            <a href="admin.html">View All Reports</a>
+        </div>
+        
+        <h1>ACCIDENT REPORT</h1>
+        
+        <div id="reportContent">
+            <!-- Report will load here -->
+        </div>
+    </div>
+
+    <!-- Firebase Setup -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script>
+        // Same Firebase Config as index.html
+        const firebaseConfig = {
+            apiKey: "AIzaSyDcjqTdo23GdBhAbfyq6Mchlbs0ad5TO7U",
+            authDomain: "accident-report-9b7ee.firebaseapp.com",
+            projectId: "accident-report-9b7ee",
+            storageBucket: "accident-report-9b7ee.appspot.com",
+            messagingSenderId: "644874177194",
+            appId: "1:644874177194:web:647c19e7993b2194165ed3"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Get report ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportId = urlParams.get('id');
+        
+        // Fetch the report
+        db.collection('reports').doc(reportId).get().then((doc) => {
+            if (doc.exists) {
+                const report = doc.data();
+                document.getElementById('reportContent').innerHTML = `
+                    <div class="report-header">
+                        <p><strong>Report ID:</strong> ${reportId}</p>
+                        <p><strong>Date Submitted:</strong> ${new Date(report.createdAt?.toDate()).toLocaleDateString()}</p>
+                    </div>
+                    <div class="report-section">
+                        <h2>ACCIDENT DETAILS</h2>
+                        <p><strong>Date:</strong> ${report.reportDate}</p>
+                        <p><strong>Time:</strong> ${report.reportTime}</p>
+                        <p><strong>Location:</strong> ${report.location}</p>
+                    </div>
+                    <!-- Rest of report details -->
+                `;
+            } else {
+                document.getElementById('reportContent').innerHTML = '<p>Report not found.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
