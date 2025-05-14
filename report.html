@@ -5,34 +5,199 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accident Report Details</title>
     <style>
-        /* Add this to your existing styles */
-        .status-control {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .report-header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .report-id {
+            background: #f1f1f1;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .report-section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .report-section h2 {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .report-section h2::before {
+            content: "•";
+            color: #3498db;
+            margin-right: 10px;
+            font-size: 24px;
+        }
+
+        .report-field {
+            margin-bottom: 10px;
+            display: flex;
+        }
+
+        .report-field strong {
+            min-width: 150px;
+            display: inline-block;
+            color: #7f8c8d;
+        }
+
+        .report-field div {
+            flex: 1;
+        }
+
+        .print-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
             border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .print-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .print-btn::before {
+            content: "🖨️";
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* New status control styles - designed to match existing aesthetic */
+        .status-control {
+            margin: 0 0 25px 0;
+            padding: 0;
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .status-label {
-            font-weight: bold;
+            font-weight: 600;
             color: #2c3e50;
+            font-size: 15px;
         }
+
         .status-select {
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            padding: 6px 10px;
+            border-radius: 15px;
+            border: 1px solid #e0e0e0;
             font-family: inherit;
+            font-size: 14px;
+            background-color: #f8f9fa;
+            color: #2c3e50;
             cursor: pointer;
+            transition: all 0.2s;
         }
+
+        .status-select:hover {
+            border-color: #3498db;
+        }
+
+        .status-select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
         .status-new {
             background-color: #e3f2fd;
             color: #1976d2;
         }
+
         .status-reviewed {
             background-color: #e8f5e9;
             color: #388e3c;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 10px;
+            }
+            .print-btn {
+                display: none;
+            }
+            .status-select {
+                -webkit-appearance: none;
+                appearance: none;
+                border: none;
+                background: transparent;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .report-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .report-field {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .report-field strong {
+                min-width: auto;
+            }
         }
     </style>
 </head>
@@ -83,6 +248,8 @@
             if (doc.exists) {
                 const report = doc.data();
                 const currentStatus = report.status || 'new';
+                const submissionDate = report.createdAt?.toDate();
+                const reviewedDate = report.reviewedAt?.toDate();
                 
                 // Format the accident type for display
                 const formattedAccidentType = {
@@ -93,7 +260,7 @@
                     'other': 'Other'
                 }[report.accidentType] || report.accidentType;
                 
-                // Format date
+                // Format dates
                 const reportDate = report.reportDate ? 
                     new Date(report.reportDate).toLocaleDateString() : 'Not specified';
                 
@@ -104,13 +271,25 @@
                         <span class="report-id">Report ID: ${reportId.substring(0, 8)}</span>
                     </div>
                     
-                    <!-- Status Control -->
-                    <div class="status-control">
-                        <span class="status-label">Status:</span>
-                        <select id="reportStatus" class="status-select status-${currentStatus}">
-                            <option value="new" ${currentStatus === 'new' ? 'selected' : ''}>New</option>
-                            <option value="reviewed" ${currentStatus === 'reviewed' ? 'selected' : ''}>Reviewed</option>
-                        </select>
+                    <!-- Status Control - Integrated naturally with the design -->
+                    <div class="report-section">
+                        <h2>Report Status</h2>
+                        <div class="status-control">
+                            <span class="status-label">Current Status:</span>
+                            <select id="reportStatus" class="status-select status-${currentStatus}">
+                                <option value="new" ${currentStatus === 'new' ? 'selected' : ''}>New</option>
+                                <option value="reviewed" ${currentStatus === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+                            </select>
+                        </div>
+                        <div class="report-field">
+                            <strong>Submitted:</strong>
+                            <div>${submissionDate ? submissionDate.toLocaleString() : 'Not available'}</div>
+                        </div>
+                        ${reviewedDate ? `
+                        <div class="report-field">
+                            <strong>Reviewed:</strong>
+                            <div>${reviewedDate.toLocaleString()}</div>
+                        </div>` : ''}
                     </div>
                     
                     <div class="report-section">
@@ -168,19 +347,6 @@
                         </div>
                     </div>` : ''}
                     
-                    <div class="report-section">
-                        <h2>Report Metadata</h2>
-                        <div class="report-field">
-                            <strong>Submitted On:</strong>
-                            <div>${new Date(report.createdAt?.toDate()).toLocaleString()}</div>
-                        </div>
-                        ${report.reviewedAt ? `
-                        <div class="report-field">
-                            <strong>Reviewed On:</strong>
-                            <div>${new Date(report.reviewedAt?.toDate()).toLocaleString()}</div>
-                        </div>` : ''}
-                    </div>
-                    
                     <button class="print-btn" onclick="window.print()">Print Report</button>
                 `;
                 
@@ -192,10 +358,10 @@
                     updateReportStatus(newStatus)
                         .then(() => {
                             e.target.className = `status-select status-${newStatus}`;
+                            location.reload(); // Refresh to show updated reviewed timestamp
                         })
                         .catch(error => {
                             console.error("Error updating status:", error);
-                            alert("Failed to update status. Please try again.");
                             e.target.value = currentStatus; // Revert on error
                         });
                 });
