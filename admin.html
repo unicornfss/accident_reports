@@ -5,60 +5,284 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accident Reports - Admin</title>
     <style>
-        /* Same styles as before */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .search-box {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-width: 250px;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .filter-select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+        
+        .new-report-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .new-report-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .reports-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .reports-table th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        .reports-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .reports-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .view-link {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .view-link:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-new {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-reviewed {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .no-reports {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .reports-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="nav">
-            <a href="index.html">Submit New Report</a>
-        </div>
-        
         <h1>Accident Reports</h1>
         
-        <table id="reportsTable">
+        <div class="controls">
+            <div class="filter-group">
+                <input type="text" class="search-box" placeholder="Search reports...">
+                <select class="filter-select">
+                    <option value="">All Types</option>
+                    <option value="slip_trip">Slip/Trip/Fall</option>
+                    <option value="vehicle">Vehicle Accident</option>
+                    <option value="equipment">Equipment/Machinery</option>
+                    <option value="chemical">Chemical Exposure</option>
+                    <option value="other">Other</option>
+                </select>
+                <select class="filter-select">
+                    <option value="">All Statuses</option>
+                    <option value="new">New</option>
+                    <option value="reviewed">Reviewed</option>
+                </select>
+            </div>
+            
+            <a href="index.html" class="new-report-btn">+ New Report</a>
+        </div>
+        
+        <table class="reports-table">
             <thead>
                 <tr>
                     <th>Report ID</th>
                     <th>Date</th>
+                    <th>Type</th>
+                    <th>Location</th>
                     <th>Reporter</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody id="reportsList">
+                <!-- Reports will be inserted here by JavaScript -->
+            </tbody>
         </table>
+        
+        <div id="noReports" class="no-reports" style="display: none;">
+            No accident reports have been submitted yet.
+        </div>
     </div>
 
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script>
-        // Same Firebase Config
+        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDcjqTdo23GdBhAbfyq6Mchlbs0ad5TO7U",
             authDomain: "accident-report-9b7ee.firebaseapp.com",
             projectId: "accident-report-9b7ee",
-            storageBucket: "accident-report-9b7ee.appspot.com",
+            storageBucket: "accident-report-9b7ee.firebasestorage.app",
             messagingSenderId: "644874177194",
-            appId: "1:644874177194:web:647c19e7993b2194165ed3"
+            appId: "1:644874177194:web:647c19e7993b2194165ed3",
+            measurementId: "G-TLHK07YWKG"
         };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Load all reports
+        // Format accident types for display
+        const accidentTypes = {
+            'slip_trip': 'Slip/Trip/Fall',
+            'vehicle': 'Vehicle Accident',
+            'equipment': 'Equipment/Machinery',
+            'chemical': 'Chemical Exposure',
+            'other': 'Other'
+        };
+
+        // Fetch all reports
         db.collection('reports').orderBy('createdAt', 'desc').get().then((querySnapshot) => {
-            const tbody = document.querySelector('#reportsTable tbody');
+            const reportsList = document.getElementById('reportsList');
+            const noReports = document.getElementById('noReports');
+            
+            if (querySnapshot.empty) {
+                noReports.style.display = 'block';
+                return;
+            }
+            
             querySnapshot.forEach((doc) => {
                 const report = doc.data();
+                const reportId = doc.id;
+                const formattedDate = report.reportDate ? 
+                    new Date(report.reportDate).toLocaleDateString() : 'N/A';
+                const formattedType = accidentTypes[report.accidentType] || report.accidentType;
+                
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${doc.id.substring(0, 8)}...</td>
-                    <td>${report.reportDate}</td>
-                    <td>${report.reporterName}</td>
-                    <td><a href="report.html?id=${doc.id}">View</a></td>
+                    <td>${reportId.substring(0, 8)}</td>
+                    <td>${formattedDate}</td>
+                    <td>${formattedType}</td>
+                    <td>${report.location || 'N/A'}</td>
+                    <td>${report.reporterName || 'Anonymous'}</td>
+                    <td><span class="status-badge status-new">New</span></td>
+                    <td><a href="report.html?id=${reportId}" class="view-link">View Details</a></td>
                 `;
-                tbody.appendChild(row);
+                reportsList.appendChild(row);
             });
+            
+            // Add simple search functionality
+            document.querySelector('.search-box').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#reportsList tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+            
+            // Add filter functionality
+            document.querySelectorAll('.filter-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const typeFilter = document.querySelector('.filter-select:nth-of-type(1)').value;
+                    const statusFilter = document.querySelector('.filter-select:nth-of-type(2)').value;
+                    const rows = document.querySelectorAll('#reportsList tr');
+                    
+                    rows.forEach(row => {
+                        const typeMatch = !typeFilter || row.cells[2].textContent === accidentTypes[typeFilter] || typeFilter === '';
+                        const statusMatch = !statusFilter || row.cells[5].textContent.toLowerCase().includes(statusFilter) || statusFilter === '';
+                        row.style.display = typeMatch && statusMatch ? '' : 'none';
+                    });
+                });
+            });
+            
+        }).catch((error) => {
+            console.error("Error getting documents: ", error);
+            document.getElementById('noReports').textContent = 'Error loading reports. Please try again.';
+            document.getElementById('noReports').style.display = 'block';
         });
     </script>
 </body>
