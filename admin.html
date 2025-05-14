@@ -137,19 +137,22 @@
             text-decoration: underline;
         }
         
-        .status-badge {
+        .status-select {
             padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .status-new {
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-family: inherit;
+            cursor: pointer;
             background-color: #e3f2fd;
             color: #1976d2;
         }
         
-        .status-reviewed {
+        .status-select option[value="new"] {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-select option[value="reviewed"] {
             background-color: #e8f5e9;
             color: #388e3c;
         }
@@ -331,23 +334,24 @@
                     submissionDate.toLocaleString() : 'N/A';
                 
                 const formattedType = accidentTypes[report.accidentType] || report.accidentType;
+                const currentStatus = report.status || 'new'; // Default to 'new' if status doesn't exist
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-    <td>${reportId.substring(0, 8)}</td>
-    <td>${formattedDate}</td>
-    <td>${formattedSubmissionDate}</td>
-    <td>${formattedType}</td>
-    <td>${report.location || 'N/A'}</td>
-    <td>${report.reporterName || 'Anonymous'}</td>
-    <td>
-        <select class="status-select" data-report-id="${reportId}">
-            <option value="new" ${report.status === 'reviewed' ? '' : 'selected'}>New</option>
-            <option value="reviewed" ${report.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
-        </select>
-    </td>
-    <td><a href="report.html?id=${reportId}" class="view-link">View Details</a></td>
-`;
+                    <td>${reportId.substring(0, 8)}</td>
+                    <td data-incident="${incidentDate ? incidentDate.getTime() : ''}">${formattedIncidentDate}</td>
+                    <td data-submission="${submissionDate ? submissionDate.getTime() : ''}">${formattedSubmissionDate}</td>
+                    <td>${formattedType}</td>
+                    <td>${report.location || 'N/A'}</td>
+                    <td>${report.reporterName || 'Anonymous'}</td>
+                    <td>
+                        <select class="status-select" data-report-id="${reportId}">
+                            <option value="new" ${currentStatus === 'new' ? 'selected' : ''}>New</option>
+                            <option value="reviewed" ${currentStatus === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+                        </select>
+                    </td>
+                    <td><a href="report.html?id=${reportId}" class="view-link">View Details</a></td>
+                `;
                 reportsList.appendChild(row);
             });
             
@@ -386,7 +390,12 @@
                 
                 rows.forEach(row => {
                     const typeMatch = !typeFilter || row.cells[3].textContent === accidentTypes[typeFilter] || typeFilter === '';
-                    const statusMatch = !statusFilter || row.cells[6].textContent.toLowerCase().includes(statusFilter) || statusFilter === '';
+                    
+                    // Status matching - now checks the dropdown value
+                    const statusSelect = row.cells[6].querySelector('.status-select');
+                    const statusMatch = !statusFilter || 
+                                      (statusSelect && statusSelect.value === statusFilter) || 
+                                      statusFilter === '';
                     
                     // Submission date filtering
                     let submissionDateMatch = true;
@@ -435,6 +444,31 @@
             
             // Apply filters initially
             applyFilters();
+            
+            // Handle status changes
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('status-select')) {
+                    const reportId = e.target.getAttribute('data-report-id');
+                    const newStatus = e.target.value;
+                    
+                    // Update Firestore
+                    db.collection('reports').doc(reportId).update({
+                        status: newStatus,
+                        reviewedAt: newStatus === 'reviewed' ? firebase.firestore.FieldValue.serverTimestamp() : null
+                    })
+                    .then(() => {
+                        console.log('Status updated successfully');
+                        // Update the dropdown appearance
+                        e.target.className = `status-select status-${newStatus}`;
+                    })
+                    .catch((error) => {
+                        console.error("Error updating status: ", error);
+                        alert("Error updating status. Please try again.");
+                        // Revert the dropdown if there was an error
+                        e.target.value = e.target.getAttribute('data-previous-value');
+                    });
+                }
+            });
             
         }).catch((error) => {
             console.error("Error getting documents: ", error);
