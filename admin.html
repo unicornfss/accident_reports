@@ -61,6 +61,12 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
+        .date-filter-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
         .date-filter {
             display: flex;
             align-items: center;
@@ -70,6 +76,7 @@
         .date-filter label {
             font-size: 14px;
             color: #555;
+            white-space: nowrap;
         }
         
         .date-filter input {
@@ -163,7 +170,17 @@
                 align-items: flex-start;
             }
             
+            .date-filter-group {
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+            
             .date-filter {
+                width: 100%;
+            }
+            
+            .date-filter input {
                 width: 100%;
             }
             
@@ -194,13 +211,24 @@
                     <option value="new">New</option>
                     <option value="reviewed">Reviewed</option>
                 </select>
-                <div class="date-filter">
-                    <label for="dateFrom">From:</label>
-                    <input type="date" class="filter-select" id="dateFrom">
-                </div>
-                <div class="date-filter">
-                    <label for="dateTo">To:</label>
-                    <input type="date" class="filter-select" id="dateTo">
+                
+                <div class="date-filter-group">
+                    <div class="date-filter">
+                        <label for="submissionDateFrom">Submitted From:</label>
+                        <input type="date" class="filter-select" id="submissionDateFrom">
+                    </div>
+                    <div class="date-filter">
+                        <label for="submissionDateTo">Submitted To:</label>
+                        <input type="date" class="filter-select" id="submissionDateTo">
+                    </div>
+                    <div class="date-filter">
+                        <label for="incidentDateFrom">Incident From:</label>
+                        <input type="date" class="filter-select" id="incidentDateFrom">
+                    </div>
+                    <div class="date-filter">
+                        <label for="incidentDateTo">Incident To:</label>
+                        <input type="date" class="filter-select" id="incidentDateTo">
+                    </div>
                 </div>
             </div>
             
@@ -264,13 +292,15 @@
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(today.getDate() - 30);
             
-            document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
-            document.getElementById('dateTo').valueAsDate = today;
-        }
-
-        // Format date to YYYY-MM-DD for comparison
-        function formatDateForComparison(date) {
-            return date.toISOString().split('T')[0];
+            // Set default submission date range (last 30 days)
+            document.getElementById('submissionDateFrom').valueAsDate = thirtyDaysAgo;
+            document.getElementById('submissionDateTo').valueAsDate = today;
+            
+            // Set default incident date range (last 90 days)
+            const ninetyDaysAgo = new Date();
+            ninetyDaysAgo.setDate(today.getDate() - 90);
+            document.getElementById('incidentDateFrom').valueAsDate = ninetyDaysAgo;
+            document.getElementById('incidentDateTo').valueAsDate = today;
         }
 
         // Fetch all reports
@@ -289,18 +319,23 @@
             querySnapshot.forEach((doc) => {
                 const report = doc.data();
                 const reportId = doc.id;
-                const formattedDate = report.reportDate ? 
-                    new Date(report.reportDate).toLocaleDateString() : 'N/A';
+                
+                // Format dates
+                const incidentDate = report.reportDate ? new Date(report.reportDate) : null;
+                const formattedIncidentDate = incidentDate ? 
+                    incidentDate.toLocaleDateString() : 'N/A';
+                
                 const submissionDate = report.createdAt ? 
                     new Date(report.createdAt.seconds * 1000) : null;
                 const formattedSubmissionDate = submissionDate ? 
                     submissionDate.toLocaleString() : 'N/A';
+                
                 const formattedType = accidentTypes[report.accidentType] || report.accidentType;
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${reportId.substring(0, 8)}</td>
-                    <td>${formattedDate}</td>
+                    <td data-incident="${incidentDate ? incidentDate.getTime() : ''}">${formattedIncidentDate}</td>
                     <td data-submission="${submissionDate ? submissionDate.getTime() : ''}">${formattedSubmissionDate}</td>
                     <td>${formattedType}</td>
                     <td>${report.location || 'N/A'}</td>
@@ -326,42 +361,70 @@
             function applyFilters() {
                 const typeFilter = document.querySelector('.filter-select:nth-of-type(1)').value;
                 const statusFilter = document.querySelector('.filter-select:nth-of-type(2)').value;
-                const dateFrom = document.getElementById('dateFrom').value;
-                const dateTo = document.getElementById('dateTo').value;
+                
+                // Get date filter values
+                const submissionDateFrom = document.getElementById('submissionDateFrom').value;
+                const submissionDateTo = document.getElementById('submissionDateTo').value;
+                const incidentDateFrom = document.getElementById('incidentDateFrom').value;
+                const incidentDateTo = document.getElementById('incidentDateTo').value;
+                
                 const rows = document.querySelectorAll('#reportsList tr');
                 
-                const fromDate = dateFrom ? new Date(dateFrom) : null;
-                const toDate = dateTo ? new Date(dateTo) : null;
-                if (toDate) toDate.setHours(23, 59, 59, 999); // Include entire end day
+                // Prepare date objects for comparison
+                const subFromDate = submissionDateFrom ? new Date(submissionDateFrom) : null;
+                const subToDate = submissionDateTo ? new Date(submissionDateTo) : null;
+                if (subToDate) subToDate.setHours(23, 59, 59, 999);
+                
+                const incFromDate = incidentDateFrom ? new Date(incidentDateFrom) : null;
+                const incToDate = incidentDateTo ? new Date(incidentDateTo) : null;
+                if (incToDate) incToDate.setHours(23, 59, 59, 999);
                 
                 rows.forEach(row => {
                     const typeMatch = !typeFilter || row.cells[3].textContent === accidentTypes[typeFilter] || typeFilter === '';
                     const statusMatch = !statusFilter || row.cells[6].textContent.toLowerCase().includes(statusFilter) || statusFilter === '';
                     
-                    // Date range filtering
-                    let dateMatch = true;
-                    if (fromDate || toDate) {
+                    // Submission date filtering
+                    let submissionDateMatch = true;
+                    if (subFromDate || subToDate) {
                         const submissionTimestamp = row.cells[2].getAttribute('data-submission');
                         if (submissionTimestamp) {
                             const submissionDate = new Date(parseInt(submissionTimestamp));
                             
-                            if (fromDate && submissionDate < fromDate) {
-                                dateMatch = false;
+                            if (subFromDate && submissionDate < subFromDate) {
+                                submissionDateMatch = false;
                             }
-                            if (toDate && submissionDate > toDate) {
-                                dateMatch = false;
+                            if (subToDate && submissionDate > subToDate) {
+                                submissionDateMatch = false;
                             }
                         } else {
-                            dateMatch = false; // Exclude entries with no date if filtering by date
+                            submissionDateMatch = false;
                         }
                     }
                     
-                    row.style.display = typeMatch && statusMatch && dateMatch ? '' : 'none';
+                    // Incident date filtering
+                    let incidentDateMatch = true;
+                    if (incFromDate || incToDate) {
+                        const incidentTimestamp = row.cells[1].getAttribute('data-incident');
+                        if (incidentTimestamp) {
+                            const incidentDate = new Date(parseInt(incidentTimestamp));
+                            
+                            if (incFromDate && incidentDate < incFromDate) {
+                                incidentDateMatch = false;
+                            }
+                            if (incToDate && incidentDate > incToDate) {
+                                incidentDateMatch = false;
+                            }
+                        } else {
+                            incidentDateMatch = false;
+                        }
+                    }
+                    
+                    row.style.display = typeMatch && statusMatch && submissionDateMatch && incidentDateMatch ? '' : 'none';
                 });
             }
             
             // Apply filters when any filter changes
-            document.querySelectorAll('.filter-select, #dateFrom, #dateTo').forEach(select => {
+            document.querySelectorAll('.filter-select, #submissionDateFrom, #submissionDateTo, #incidentDateFrom, #incidentDateTo').forEach(select => {
                 select.addEventListener('change', applyFilters);
             });
             
