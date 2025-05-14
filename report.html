@@ -5,294 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accident Report Details</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .report-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e9ecef;
-        }
-
-        .report-header h1 {
-            color: #2c3e50;
-            margin: 0;
-            font-size: 28px;
-        }
-
-        .report-id {
-            background: #f1f1f1;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .report-section {
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .report-section h2 {
-            color: #3498db;
-            margin-bottom: 15px;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .report-section h2::before {
-            content: "•";
-            color: #3498db;
-            margin-right: 10px;
-            font-size: 24px;
-        }
-
-        .report-field {
-            margin-bottom: 10px;
-            display: flex;
-        }
-
-        .report-field strong {
-            min-width: 150px;
-            display: inline-block;
-            color: #7f8c8d;
-        }
-
-        .report-field div {
-            flex: 1;
-        }
-
-        .print-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        /* Add to your existing report.html styles */
+        .status-control {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
         }
-
-        .print-btn:hover {
-            background-color: #2980b9;
+        .status-select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-family: inherit;
         }
-
-        .print-btn::before {
-            content: "🖨️";
+        .status-new {
+            background-color: #e3f2fd;
+            color: #1976d2;
         }
-
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #3498db;
-            text-decoration: none;
-            font-weight: bold;
+        .status-reviewed {
+            background-color: #e8f5e9;
+            color: #388e3c;
         }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-            .container {
-                box-shadow: none;
-                padding: 10px;
-            }
-            .print-btn {
-                display: none;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .report-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .report-field {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .report-field strong {
-                min-width: auto;
-            }
+        /* OR for checkbox version */
+        .status-checkbox {
+            margin-left: 10px;
+            transform: scale(1.3);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="nav">
-            <a href="admin.html" class="back-link">← Back to All Reports</a>
+        <!-- Your existing report details here -->
+        
+        <!-- Add this status control section -->
+        <div class="status-control">
+            <label for="reportStatus">Status:</label>
+            
+            <!-- Dropdown Version -->
+            <select id="reportStatus" class="status-select">
+                <option value="new">New</option>
+                <option value="reviewed">Reviewed</option>
+            </select>
+            
+            <!-- OR Checkbox Version (choose one) -->
+            <!--
+            <input type="checkbox" id="reportReviewed" class="status-checkbox">
+            <label for="reportReviewed">Mark as Reviewed</label>
+            -->
         </div>
         
-        <div id="reportContent">
-            <!-- Report content will be inserted here by JavaScript -->
-        </div>
+        <!-- Rest of your report template -->
     </div>
 
-    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script>
-        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDcjqTdo23GdBhAbfyq6Mchlbs0ad5TO7U",
             authDomain: "accident-report-9b7ee.firebaseapp.com",
             projectId: "accident-report-9b7ee",
-            storageBucket: "accident-report-9b7ee.firebasestorage.app",
+            storageBucket: "accident-report-9b7ee.appspot.com",
             messagingSenderId: "644874177194",
-            appId: "1:644874177194:web:647c19e7993b2194165ed3",
-            measurementId: "G-TLHK07YWKG"
+            appId: "1:644874177194:web:647c19e7993b2194165ed3"
         };
-
-        // Initialize Firebase
+        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
+        
         // Get report ID from URL
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('id');
         
-        // Fetch the report from Firebase
+        // Load report data
         db.collection('reports').doc(reportId).get().then((doc) => {
             if (doc.exists) {
                 const report = doc.data();
                 
-                // Format the accident type for display
-                const formattedAccidentType = {
-                    'slip_trip': 'Slip/Trip/Fall',
-                    'vehicle': 'Vehicle Accident',
-                    'equipment': 'Equipment/Machinery',
-                    'chemical': 'Chemical Exposure',
-                    'other': 'Other'
-                }[report.accidentType] || report.accidentType;
+                // Set current status in the control
+                const statusControl = document.getElementById('reportStatus');
+                if (statusControl) {
+                    statusControl.value = report.status || 'new';
+                    statusControl.classList.add(`status-${report.status || 'new'}`);
+                    
+                    // Handle status changes
+                    statusControl.addEventListener('change', (e) => {
+                        const newStatus = e.target.value;
+                        db.collection('reports').doc(reportId).update({
+                            status: newStatus,
+                            reviewedAt: newStatus === 'reviewed' ? firebase.firestore.FieldValue.serverTimestamp() : null
+                        }).then(() => {
+                            e.target.className = `status-select status-${newStatus}`;
+                        });
+                    });
+                }
                 
-                // Format date
-                const reportDate = report.reportDate ? 
-                    new Date(report.reportDate).toLocaleDateString() : 'Not specified';
+                // OR for checkbox version
+                const checkbox = document.getElementById('reportReviewed');
+                if (checkbox) {
+                    checkbox.checked = report.status === 'reviewed';
+                    checkbox.addEventListener('change', (e) => {
+                        const newStatus = e.target.checked ? 'reviewed' : 'new';
+                        db.collection('reports').doc(reportId).update({
+                            status: newStatus,
+                            reviewedAt: newStatus === 'reviewed' ? firebase.firestore.FieldValue.serverTimestamp() : null
+                        });
+                    });
+                }
                 
-                // Create HTML for the report
-                const reportHTML = `
-                    <div class="report-header">
-                        <h1>Accident Report Details</h1>
-                        <span class="report-id">Report ID: ${reportId.substring(0, 8)}</span>
-                    </div>
-                    
-                    <div class="report-section">
-                        <h2>Incident Information</h2>
-                        <div class="report-field">
-                            <strong>Date:</strong>
-                            <div>${reportDate}</div>
-                        </div>
-                        <div class="report-field">
-                            <strong>Time:</strong>
-                            <div>${report.reportTime || 'Not specified'}</div>
-                        </div>
-                        <div class="report-field">
-                            <strong>Location:</strong>
-                            <div>${report.location || 'Not specified'}</div>
-                        </div>
-                        <div class="report-field">
-                            <strong>Accident Type:</strong>
-                            <div>${formattedAccidentType}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="report-section">
-                        <h2>Incident Description</h2>
-                        <div style="white-space: pre-line; background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            ${report.description || 'No description provided'}
-                        </div>
-                    </div>
-                    
-                    ${report.injuries ? `
-                    <div class="report-section">
-                        <h2>Injuries Sustained</h2>
-                        <div style="white-space: pre-line; background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            ${report.injuries}
-                        </div>
-                    </div>` : ''}
-                    
-                    <div class="report-section">
-                        <h2>Reporter Information</h2>
-                        <div class="report-field">
-                            <strong>Name:</strong>
-                            <div>${report.reporterName || 'Not specified'}</div>
-                        </div>
-                        <div class="report-field">
-                            <strong>Contact:</strong>
-                            <div>${report.reporterContact || 'Not specified'}</div>
-                        </div>
-                    </div>
-                    
-                    ${report.witnesses ? `
-                    <div class="report-section">
-                        <h2>Witness Information</h2>
-                        <div style="white-space: pre-line; background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            ${report.witnesses}
-                        </div>
-                    </div>` : ''}
-                    
-                    <div class="report-section">
-                        <h2>Report Metadata</h2>
-                        <div class="report-field">
-                            <strong>Submitted On:</strong>
-                            <div>${new Date(report.createdAt?.toDate()).toLocaleString()}</div>
-                        </div>
-                    </div>
-                    
-                    <button class="print-btn" onclick="window.print()">Print Report</button>
-                `;
+                // Populate other report fields...
                 
-                document.getElementById('reportContent').innerHTML = reportHTML;
             } else {
-                document.getElementById('reportContent').innerHTML = `
-                    <div class="report-header">
-                        <h1>Report Not Found</h1>
-                    </div>
-                    <p>The requested report could not be found. Please check the report ID and try again.</p>
-                    <a href="admin.html" class="back-link">← Back to All Reports</a>
-                `;
+                console.log("No such document!");
             }
-        }).catch((error) => {
-            console.error("Error getting document:", error);
-            document.getElementById('reportContent').innerHTML = `
-                <div class="report-header">
-                    <h1>Error Loading Report</h1>
-                </div>
-                <p>There was an error loading the report. Please try again later.</p>
-                <p>Error: ${error.message}</p>
-                <a href="admin.html" class="back-link">← Back to All Reports</a>
-            `;
         });
     </script>
 </body>
