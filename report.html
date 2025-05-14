@@ -5,146 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accident Report Details</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .report-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e9ecef;
-        }
-
-        .report-header h1 {
-            color: #2c3e50;
-            margin: 0;
-            font-size: 28px;
-        }
-
-        .report-id {
-            background: #f1f1f1;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .report-section {
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .report-section h2 {
-            color: #3498db;
-            margin-bottom: 15px;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .report-section h2::before {
-            content: "•";
-            color: #3498db;
-            margin-right: 10px;
-            font-size: 24px;
-        }
-
-        .report-field {
-            margin-bottom: 10px;
-            display: flex;
-        }
-
-        .report-field strong {
-            min-width: 150px;
-            display: inline-block;
-            color: #7f8c8d;
-        }
-
-        .report-field div {
-            flex: 1;
-        }
-
-        .print-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        /* Add this to your existing styles */
+        .status-control {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
-
-        .print-btn:hover {
-            background-color: #2980b9;
-        }
-
-        .print-btn::before {
-            content: "🖨️";
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #3498db;
-            text-decoration: none;
+        .status-label {
             font-weight: bold;
+            color: #2c3e50;
         }
-
-        .back-link:hover {
-            text-decoration: underline;
+        .status-select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-family: inherit;
+            cursor: pointer;
         }
-
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-            .container {
-                box-shadow: none;
-                padding: 10px;
-            }
-            .print-btn {
-                display: none;
-            }
+        .status-new {
+            background-color: #e3f2fd;
+            color: #1976d2;
         }
-
-        @media (max-width: 768px) {
-            .report-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .report-field {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .report-field strong {
-                min-width: auto;
-            }
+        .status-reviewed {
+            background-color: #e8f5e9;
+            color: #388e3c;
         }
     </style>
 </head>
@@ -182,10 +70,19 @@
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('id');
         
+        // Function to update status in Firestore
+        function updateReportStatus(newStatus) {
+            return db.collection('reports').doc(reportId).update({
+                status: newStatus,
+                reviewedAt: newStatus === 'reviewed' ? firebase.firestore.FieldValue.serverTimestamp() : null
+            });
+        }
+        
         // Fetch the report from Firebase
         db.collection('reports').doc(reportId).get().then((doc) => {
             if (doc.exists) {
                 const report = doc.data();
+                const currentStatus = report.status || 'new';
                 
                 // Format the accident type for display
                 const formattedAccidentType = {
@@ -205,6 +102,15 @@
                     <div class="report-header">
                         <h1>Accident Report Details</h1>
                         <span class="report-id">Report ID: ${reportId.substring(0, 8)}</span>
+                    </div>
+                    
+                    <!-- Status Control -->
+                    <div class="status-control">
+                        <span class="status-label">Status:</span>
+                        <select id="reportStatus" class="status-select status-${currentStatus}">
+                            <option value="new" ${currentStatus === 'new' ? 'selected' : ''}>New</option>
+                            <option value="reviewed" ${currentStatus === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+                        </select>
                     </div>
                     
                     <div class="report-section">
@@ -268,12 +174,32 @@
                             <strong>Submitted On:</strong>
                             <div>${new Date(report.createdAt?.toDate()).toLocaleString()}</div>
                         </div>
+                        ${report.reviewedAt ? `
+                        <div class="report-field">
+                            <strong>Reviewed On:</strong>
+                            <div>${new Date(report.reviewedAt?.toDate()).toLocaleString()}</div>
+                        </div>` : ''}
                     </div>
                     
                     <button class="print-btn" onclick="window.print()">Print Report</button>
                 `;
                 
                 document.getElementById('reportContent').innerHTML = reportHTML;
+                
+                // Add event listener for status changes
+                document.getElementById('reportStatus').addEventListener('change', function(e) {
+                    const newStatus = e.target.value;
+                    updateReportStatus(newStatus)
+                        .then(() => {
+                            e.target.className = `status-select status-${newStatus}`;
+                        })
+                        .catch(error => {
+                            console.error("Error updating status:", error);
+                            alert("Failed to update status. Please try again.");
+                            e.target.value = currentStatus; // Revert on error
+                        });
+                });
+                
             } else {
                 document.getElementById('reportContent').innerHTML = `
                     <div class="report-header">
