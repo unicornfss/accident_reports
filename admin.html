@@ -334,15 +334,20 @@
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${reportId.substring(0, 8)}</td>
-                    <td data-incident="${incidentDate ? incidentDate.getTime() : ''}">${formattedIncidentDate}</td>
-                    <td data-submission="${submissionDate ? submissionDate.getTime() : ''}">${formattedSubmissionDate}</td>
-                    <td>${formattedType}</td>
-                    <td>${report.location || 'N/A'}</td>
-                    <td>${report.reporterName || 'Anonymous'}</td>
-                    <td><span class="status-badge status-new">New</span></td>
-                    <td><a href="report.html?id=${reportId}" class="view-link">View Details</a></td>
-                `;
+    <td>${reportId.substring(0, 8)}</td>
+    <td>${formattedDate}</td>
+    <td>${formattedSubmissionDate}</td>
+    <td>${formattedType}</td>
+    <td>${report.location || 'N/A'}</td>
+    <td>${report.reporterName || 'Anonymous'}</td>
+    <td>
+        <select class="status-select" data-report-id="${reportId}">
+            <option value="new" ${report.status === 'reviewed' ? '' : 'selected'}>New</option>
+            <option value="reviewed" ${report.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+        </select>
+    </td>
+    <td><a href="report.html?id=${reportId}" class="view-link">View Details</a></td>
+`;
                 reportsList.appendChild(row);
             });
             
