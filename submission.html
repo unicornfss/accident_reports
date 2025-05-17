@@ -49,8 +49,12 @@
             font-size: 16px;
         }
         
+        button.secondary {
+            background-color: #95a5a6;
+        }
+        
         button:hover {
-            background-color: #2980b9;
+            opacity: 0.9;
         }
         
         .report-details {
@@ -67,6 +71,21 @@
             font-weight: bold;
             display: block;
             margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        
+        .report-field p {
+            margin: 0;
+            color: #34495e;
+        }
+        
+        .success-message {
+            background-color: #2ecc71;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
         }
     </style>
 </head>
@@ -76,6 +95,10 @@
     </header>
 
     <div class="container">
+        <div class="success-message">
+            Report successfully submitted!
+        </div>
+        
         <h1>Your Accident Report</h1>
         
         <div id="reportDetails" class="report-details">
@@ -84,7 +107,7 @@
         
         <div class="actions">
             <button id="editBtn">Edit This Report</button>
-            <button id="newReportBtn">Create New Report</button>
+            <button id="newReportBtn" class="secondary">Create New Report</button>
         </div>
     </div>
 
@@ -92,7 +115,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script>
-        // Same Firebase config as your form page
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDcjqTdo23GdBhAbfyq6Mchlbs0ad5TO7U",
             authDomain: "accident-report-9b7ee.firebaseapp.com",
@@ -111,6 +134,34 @@
         const reportId = urlParams.get('id');
         const token = urlParams.get('token') || localStorage.getItem('reportToken');
 
+        // Format date for display
+        function formatDate(dateString) {
+            if (!dateString) return 'Not specified';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        // Format time for display
+        function formatTime(timeString) {
+            if (!timeString) return 'Not specified';
+            const [hours, minutes] = timeString.split(':');
+            const hour = parseInt(hours) % 12 || 12;
+            const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
+            return `${hour}:${minutes} ${ampm}`;
+        }
+
+        // Format accident type for display
+        function formatAccidentType(type) {
+            if (!type) return 'Not specified';
+            return type.split('_').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+
         // Load report data
         db.collection('reports').doc(reportId).get().then(doc => {
             if (doc.exists) {
@@ -119,7 +170,9 @@
                 // Verify token matches (security check)
                 if (report.userToken !== token) {
                     document.getElementById('reportDetails').innerHTML = `
-                        <p>You don't have permission to view this report.</p>
+                        <div class="error-message">
+                            <p>You don't have permission to view this report.</p>
+                        </div>
                     `;
                     document.getElementById('editBtn').style.display = 'none';
                     return;
@@ -129,23 +182,23 @@
                 document.getElementById('reportDetails').innerHTML = `
                     <div class="report-field">
                         <label>Date of Accident:</label>
-                        <p>${report.reportDate}</p>
+                        <p>${formatDate(report.reportDate)}</p>
                     </div>
                     <div class="report-field">
                         <label>Time of Accident:</label>
-                        <p>${report.reportTime}</p>
+                        <p>${formatTime(report.reportTime)}</p>
                     </div>
                     <div class="report-field">
                         <label>Location:</label>
-                        <p>${report.location}</p>
+                        <p>${report.location || 'Not specified'}</p>
                     </div>
                     <div class="report-field">
                         <label>Type of Accident:</label>
-                        <p>${report.accidentType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                        <p>${formatAccidentType(report.accidentType)}</p>
                     </div>
                     <div class="report-field">
                         <label>Description:</label>
-                        <p>${report.description}</p>
+                        <p>${report.description || 'Not specified'}</p>
                     </div>
                     <div class="report-field">
                         <label>Injuries and Treatment:</label>
@@ -153,7 +206,11 @@
                     </div>
                     <div class="report-field">
                         <label>Reported by:</label>
-                        <p>${report.reporterName}</p>
+                        <p>${report.reporterName || 'Not specified'}</p>
+                    </div>
+                    <div class="report-field">
+                        <label>Contact Information:</label>
+                        <p>${report.reporterContact || 'Not provided'}</p>
                     </div>
                     <div class="report-field">
                         <label>Witnesses:</label>
@@ -162,15 +219,24 @@
                 `;
             } else {
                 document.getElementById('reportDetails').innerHTML = `
-                    <p>Report not found.</p>
+                    <div class="error-message">
+                        <p>Report not found.</p>
+                    </div>
                 `;
                 document.getElementById('editBtn').style.display = 'none';
             }
+        }).catch(error => {
+            console.error("Error loading report:", error);
+            document.getElementById('reportDetails').innerHTML = `
+                <div class="error-message">
+                    <p>Error loading report. Please try again later.</p>
+                </div>
+            `;
         });
 
         // Button event listeners
         document.getElementById('editBtn').addEventListener('click', () => {
-            window.location.href = `index.html?edit=${reportId}`;
+            window.location.href = `index.html?edit=${reportId}&token=${token}`;
         });
 
         document.getElementById('newReportBtn').addEventListener('click', () => {
