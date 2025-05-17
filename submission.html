@@ -87,6 +87,15 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        
+        .error-message {
+            background-color: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -203,6 +212,18 @@
                     <div class="report-field">
                         <label>Injuries and Treatment:</label>
                         <p>${report.injuries || 'None reported'}</p>
+                    </div>
+                    <div class="report-field">
+                        <label>Casualty Name:</label>
+                        <p>${report.casualtyName || (report.reporterName ? 'Same as reporter (' + report.reporterName + ')' : 'Not specified')}</p>
+                    </div>
+                    <div class="report-field">
+                        <label>Casualty Job Role:</label>
+                        <p>${report.casualtyJobRole || 'Not specified'}</p>
+                    </div>
+                    <div class="report-field">
+                        <label>Casualty Contact:</label>
+                        <p>${report.casualtyContact || 'Not provided'}</p>
                     </div>
                     <div class="report-field">
                         <label>Reported by:</label>
