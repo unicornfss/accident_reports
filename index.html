@@ -216,6 +216,21 @@
             </div>
             
             <div class="form-group">
+                <label for="casualtyName">Casualty Name (if different from reporter):</label>
+                <input type="text" id="casualtyName" name="casualtyName" placeholder="Name of injured person">
+            </div>
+            
+            <div class="form-group">
+                <label for="casualtyJobRole">Casualty Job Role:</label>
+                <input type="text" id="casualtyJobRole" name="casualtyJobRole" placeholder="Job role of injured person">
+            </div>
+            
+            <div class="form-group">
+                <label for="casualtyContact">Casualty Contact Details (optional):</label>
+                <input type="text" id="casualtyContact" name="casualtyContact" placeholder="Phone or email">
+            </div>
+            
+            <div class="form-group">
                 <label for="reporterName">Your Name:</label>
                 <input type="text" id="reporterName" name="reporterName" placeholder="Name of person reporting" required>
                 <div class="error" id="nameError"></div>
@@ -288,6 +303,9 @@
                     document.getElementById('accidentType').value = report.accidentType;
                     document.getElementById('description').value = report.description;
                     document.getElementById('injuries').value = report.injuries || '';
+                    document.getElementById('casualtyName').value = report.casualtyName || '';
+                    document.getElementById('casualtyJobRole').value = report.casualtyJobRole || '';
+                    document.getElementById('casualtyContact').value = report.casualtyContact || '';
                     document.getElementById('reporterName').value = report.reporterName;
                     document.getElementById('reporterContact').value = report.reporterContact;
                     document.getElementById('witnesses').value = report.witnesses || '';
@@ -314,6 +332,9 @@
                 accidentType: document.getElementById('accidentType').value,
                 description: document.getElementById('description').value,
                 injuries: document.getElementById('injuries').value,
+                casualtyName: document.getElementById('casualtyName').value,
+                casualtyJobRole: document.getElementById('casualtyJobRole').value,
+                casualtyContact: document.getElementById('casualtyContact').value,
                 reporterName: document.getElementById('reporterName').value,
                 reporterContact: document.getElementById('reporterContact').value,
                 witnesses: document.getElementById('witnesses').value,
@@ -363,17 +384,19 @@
             submitBtn.textContent = 'Submitting...';
             
             try {
+                const reportId = editId || Date.now().toString();
+                
                 if (editId) {
                     // Update existing report
-                    await db.collection('reports').doc(editId).update(reportData);
+                    await db.collection('reports').doc(reportId).update(reportData);
                     alert('Report updated successfully!');
                 } else {
                     // Create new report
-                    const reportId = Date.now().toString();
                     await db.collection('reports').doc(reportId).set(reportData);
                     alert('Report submitted successfully!');
                 }
-                window.location.href = `submission.html?id=${editId || reportId}&token=${reportData.userToken}`;
+                
+                window.location.href = `submission.html?id=${reportId}&token=${reportData.userToken}`;
             } catch (error) {
                 console.error('Error submitting report:', error);
                 document.getElementById('formError').textContent = 'Error submitting report. Please try again.';
